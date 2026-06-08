@@ -1,0 +1,45 @@
+name: Telegram Video Forwarder
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run forwarder
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          TARGET_CHANNEL_ID: ${{ secrets.TARGET_CHANNEL_ID }}
+          SOURCE_CHANNELS: ${{ secrets.SOURCE_CHANNELS }}
+          COPY_MODE: copy
+        run: python main.py
+
+      - name: Save offset
+        run: |
+          if [ -f offset.json ]; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add offset.json
+            git commit -m "update offset" || echo "No changes"
+            git push
+          fi
